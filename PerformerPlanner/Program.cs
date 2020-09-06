@@ -16,12 +16,7 @@ namespace PerformerPlanner
         {
             string[] urlStrings = new string[]
             {
-                "https://www.twitch.tv/honeymad",
-                "https://www.twitch.tv/alohadancetv",
-                "https://www.twitch.tv/dreadztv",
-                "https://www.twitch.tv/recrent",
-                "https://www.twitch.tv/zanuda",
-                "https://www.twitch.tv/mistafaker",
+                
             };
 
             ChromeManager chromeManager = new ChromeManager();
