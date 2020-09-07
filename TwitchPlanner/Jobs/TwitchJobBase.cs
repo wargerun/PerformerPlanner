@@ -27,7 +27,7 @@ namespace TwitchPlanner.Jobs
             WebDriver = webDriver;
         }
 
-        public abstract void Execute();
+        public abstract void Execute(System.Threading.CancellationToken cancellationToken);
 
         protected void TwitchAuth(TwitchIdentity identity)
         {

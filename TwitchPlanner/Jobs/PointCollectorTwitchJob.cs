@@ -1,4 +1,7 @@
-﻿using NLog;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+using NLog;
 using OpenQA.Selenium;
 using Planner.Common;
 using System;
@@ -10,11 +13,12 @@ namespace TwitchPlanner.Jobs
         private const string CSS_SELECTOR_BUTTON_ON_GET_POINT = "button[class='tw-button tw-button--success tw-interactive']";
         public static readonly string TwitchAddressPrefix = "https://www.twitch.tv/";
         private readonly TwitchIdentity _twitchIdentity;
+        private readonly ILogger<PointCollectorTwitchJob> _logger;
         private string _lastPoints;
 
         public override string Name { get; }
 
-        public PointCollectorTwitchJob(IWebDriver webDriver, TwitchIdentity twitchIdentity)
+        public PointCollectorTwitchJob(IWebDriver webDriver, IConfiguration _configuration, ILogger<PointCollectorTwitchJob> logger)
             : base(webDriver)
         {
             if (webDriver.Url is null)
@@ -29,14 +33,22 @@ namespace TwitchPlanner.Jobs
 
             string url = webDriver.Url;
             Name = $"Channel: {url.Substring(url.LastIndexOf('/') + 1)}";
-            _twitchIdentity = twitchIdentity;
+
+            string twitchLogin = _configuration["TwitchLogin"];
+            string twitchPassword = _configuration["TwitchPassword"];
+
+            _twitchIdentity = new TwitchIdentity(twitchLogin, twitchPassword);
+            _logger = logger;
         }
 
         public static bool UrlValid(string url) => url.StartsWith(TwitchAddressPrefix);
 
-        public override void Execute()
+        public override void Execute(System.Threading.CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             TwitchAuth(_twitchIdentity);
+
+            cancellationToken.ThrowIfCancellationRequested();
             CollectPoint();
         }
 
@@ -50,7 +62,7 @@ namespace TwitchPlanner.Jobs
             {
                 _log.Debug($"Uri: {WebDriver.Url}");
                 _log.Info($"Value points: {valuePoints}");
-                Console.WriteLine($"[{DateTime.Now}] - {Name}, Value points: {valuePoints}");
+                _logger.LogInformation($"{Name}, Value points: {valuePoints}");
             }
 
             if (WebDriver.IsElementExist(By.CssSelector(CSS_SELECTOR_BUTTON_ON_GET_POINT)))
@@ -59,7 +71,7 @@ namespace TwitchPlanner.Jobs
                 buttonAuth.Click();
                 _log.Info($"Get new points clicked");
 
-                Console.WriteLine($"[{DateTime.Now}] - JobName: {Name}, Get new points clicked.");
+                _logger.LogInformation($"JobName: {Name}, Get new points clicked.");
             }
 
             _lastPoints = valuePoints;

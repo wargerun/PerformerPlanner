@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 using NLog;
 
@@ -42,6 +43,13 @@ namespace PerformerPlanner
                    .ConfigureServices(services =>
                    {
                        services.AddSingleton<IHostedService, BrowserChromeService>();
+                   })
+                   .ConfigureLogging(loggingBuilder => 
+                   {
+                       loggingBuilder.AddConsole(options =>
+                       {
+                           options.TimestampFormat = "[HH:mm:ss hh:mm:ss] ";
+                       });
                    })
                    .Build()
                    .Run();
