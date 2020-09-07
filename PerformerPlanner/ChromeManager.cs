@@ -1,4 +1,7 @@
-﻿using NLog;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+using NLog;
 
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -16,21 +19,25 @@ namespace PerformerPlanner
     internal class ChromeManager
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-        private readonly ChromeDriver _webDriver;
-
+        private ChromeDriver _webDriver;
+        private readonly ILogger<ChromeManager> _chromeLogger;
+        private readonly IConfiguration _configuration;
         private HashSet<BrowserTab> _tabWithJobs;
 
         public bool IsRunning { get; private set; }
 
-        public ChromeManager()
-        {
-            ChromeOptions options = new ChromeOptions();
-            options.AddArgument("mute-audio");
-
-            _webDriver = new ChromeDriver(@"D:\Dowloands\YandexBrowser\chromedriver_win32", options); // 85.0.4183.87
+        public ChromeManager(ILogger<ChromeManager> chromeLogger, IConfiguration configuration)
+        {    
+            _chromeLogger = chromeLogger;
+            _configuration = configuration;
         }
 
         internal Task StartAsync() => Task.Run(() =>
+        {
+            Start();
+        });
+
+        private void Start()
         {
             if (_tabWithJobs is null || _tabWithJobs.Count == 0)
             {
@@ -45,24 +52,34 @@ namespace PerformerPlanner
                 foreach (BrowserTab tab in _tabWithJobs.Where(t => t.JobIsPresent))
                 {
                     try
-                    {      
+                    {
                         tab.WebDriver.SwitchTo().Window(tab.SessionWindowName);
                         tab.Job.Execute();
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex.Message);
+                        _chromeLogger.LogError(ex, ex.Message);
                         _log.Error(ex, ex.Message);
                     }
                 }
 
-                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(5));
+                string timeoutSecondsString = _configuration["TimeoutSecondsAfterJobs"];
+                int timeoutSeconds = 5;
+
+                if (timeoutSecondsString != null && int.TryParse(timeoutSecondsString, out int newtimeoutSeconds))
+                {
+                    timeoutSeconds = newtimeoutSeconds;
+                }
+
+                _chromeLogger.LogDebug($"Timeout seconds after jobs: {timeoutSeconds}");
+                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(timeoutSeconds));
             }
-        });
+        }
 
         internal void Stop()
         {
             IsRunning = false;
+            _webDriver.Close();
         }
 
         public void AddJob(Predicate<Uri> predicate, Func<IWebDriver, IJob> action)
@@ -86,6 +103,8 @@ namespace PerformerPlanner
 
         public void OpenTabs(string[] urlStrings)
         {
+            InitChromDriver();
+
             _tabWithJobs = new HashSet<BrowserTab>(urlStrings.Length);
             bool openNewTab = false;
 
@@ -108,6 +127,14 @@ namespace PerformerPlanner
 
                 _log.Trace($"Openning tab: {uri}");
             }
+        }
+
+        private void InitChromDriver()
+        {
+            ChromeOptions options = new ChromeOptions();
+            options.AddArgument("mute-audio");
+
+            _webDriver = new ChromeDriver(@"D:\Dowloands\YandexBrowser\chromedriver_win32", options); // 85.0.4183.87
         }
     }
 }

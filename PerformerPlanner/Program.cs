@@ -1,10 +1,10 @@
-﻿using NLog;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-using System.Threading;
-using System.Threading.Tasks;
+using NLog;
 
-using TwitchPlanner;
-using TwitchPlanner.Jobs;
+using System;
 
 namespace PerformerPlanner
 {
@@ -12,25 +12,45 @@ namespace PerformerPlanner
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
-            string[] urlStrings = new string[]
+            try
             {
-                
-            };
+                Host.CreateDefaultBuilder(args)
+                   .ConfigureHostConfiguration(config =>
+                   {
+                       config.AddEnvironmentVariables();
 
-            ChromeManager chromeManager = new ChromeManager();
-            chromeManager.OpenTabs(urlStrings);
+                       if (args != null)
+                       {
+                          // enviroment from command line
+                          // e.g.: dotnet run --environment "Staging"
+                          config.AddCommandLine(args);
+                       }
+                   })
+                   .ConfigureAppConfiguration((context, builder) =>
+                   {
+                       IHostEnvironment env = context.HostingEnvironment;
 
-            chromeManager.AddJob(
-                url => PointCollectorTwitchJob.UrlValid(url.ToString()),
-                webDriver => new PointCollectorTwitchJob(webDriver, new TwitchIdentity(args[0], args[1]))
-            );
+                       IConfigurationBuilder configurationBuilder = builder.SetBasePath(AppContext.BaseDirectory);
+                       configurationBuilder.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                                           .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
 
-            _log.Info("PerformerPlanner starting..");
-            await chromeManager.StartAsync();
-
-            Thread.Sleep(Timeout.Infinite);
+                       // Override config by env, using like Logging:Level or Logging__Level
+                       .AddEnvironmentVariables();
+                   })
+                   .ConfigureServices(services =>
+                   {
+                       services.AddSingleton<IHostedService, BrowserChromeService>();
+                   })
+                   .Build()
+                   .Run();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Fatal: " + ex.Message);
+                _log.Fatal(ex, ex.Message);
+            }
         }
     }
 }
