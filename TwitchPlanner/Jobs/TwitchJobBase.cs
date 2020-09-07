@@ -2,7 +2,6 @@
 using OpenQA.Selenium;
 using Planner.Common;
 using System;
-using System.Threading;
 
 namespace TwitchPlanner.Jobs
 {
@@ -28,7 +27,7 @@ namespace TwitchPlanner.Jobs
             WebDriver = webDriver;
         }
 
-        public abstract void Execute();
+        public abstract void Execute(System.Threading.CancellationToken cancellationToken);
 
         protected void TwitchAuth(TwitchIdentity identity)
         {
@@ -54,7 +53,8 @@ namespace TwitchPlanner.Jobs
                 if (WebDriver.IsElementExist(By.CssSelector("div[class='auth-modal tw-relative']")))
                 {
                     // Взять с почты код
-                    ;
+                    Console.Write("Введите код с почты: ");
+                    Console.ReadLine();
                 }
             }
         }
