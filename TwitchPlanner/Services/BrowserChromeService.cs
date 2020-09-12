@@ -48,10 +48,12 @@ namespace TwitchPlanner.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("PerformerPlanner starting..");
-            _log.Info($"Monitoring starting");
-            Task.Run(() => StartInternal(cancellationToken), cancellationToken);
-
+            Task.Run(() =>
+            {
+                _logger.LogInformation("PerformerPlanner starting..");
+                _log.Info($"Monitoring starting");
+                StartInternal(cancellationToken);
+            }, cancellationToken);
             return Task.CompletedTask;
         }
 
@@ -67,11 +69,12 @@ namespace TwitchPlanner.Services
             {
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int tabIndex = 0;
                     _webDriver.SwitchTo().Window(_webDriver.WindowHandles[tabIndex]);
                     _webDriver.Navigate().Refresh();
 
-                    UpdateBrowserTabs(currentBrowserTabs);
+                    UpdateBrowserTabsAndState(currentBrowserTabs);
 
                     for (tabIndex = 1; tabIndex <= currentBrowserTabs.Count; tabIndex++)
                     {
@@ -90,6 +93,11 @@ namespace TwitchPlanner.Services
                             {
                                 try
                                 {
+                                    if (tab.State == ChannelState.New)
+                                    {
+                                        job.OnStartUp();
+                                    }
+
                                     job.Execute(cancellationToken);
                                 }
                                 catch (Exception ex)
@@ -117,8 +125,13 @@ namespace TwitchPlanner.Services
 
                     Thread.Sleep(TimeSpan.FromSeconds(timeoutSeconds));
                 }
+                catch (OperationCanceledException ex)
+                {
+                    _logger.LogError(ex, ex.Message);
+                    _log.Error(ex, ex.Message);
+                }
                 catch (Exception ex)
-                {                                   
+                {
                     _logger.LogError(ex, ex.Message);
                     _log.Error(ex, $"Body error, Message: {ex.Message}");
                 }
@@ -145,7 +158,7 @@ namespace TwitchPlanner.Services
             return true;
         }
 
-        private void UpdateBrowserTabs(List<BrowserTab> currentBrowserTabs)
+        private void UpdateBrowserTabsAndState(List<BrowserTab> currentBrowserTabs)
         {
             Uri[] actualLinkChannels = TwitchHelper.GetLinkChannels(_webDriver).OrderBy(a => a.ToString()).ToArray();
 
@@ -154,13 +167,13 @@ namespace TwitchPlanner.Services
             {
                 item.State = ChannelState.Live;
             });
-            
+
             // Stream is not alive, ofline
             currentBrowserTabs.Where(t => !actualLinkChannels.Contains(t.Uri)).ForEach(item =>
             {
                 item.State = ChannelState.Ofline;
             });
-            
+
             // new streams
             actualLinkChannels.ForEach(item =>
             {
@@ -188,24 +201,6 @@ namespace TwitchPlanner.Services
 
             TwitchHelper.TwitchAuth(new TwitchIdentity(twitchLogin, twitchPassword), _webDriver);
         }
-
-        //private void StartAsyncInternal(CancellationToken cancellationToken)
-        //{
-        //    string[] urlStrings = _configuration.GetSection("TwitchUrl").Get<string[]>();
-
-        //    OpenTabs(urlStrings);
-        //    _logger.LogInformation($"OpenTabs Complete. Tabs count: {urlStrings.Length}");
-
-
-        //    _logger.LogInformation($"AddJob..");
-        //    AddJob(
-        //        url => PointCollectorTwitchJob.UrlValid(url.ToString()),
-        //        webDriver => new PointCollectorTwitchJob(webDriver, _configuration, collectorLogger)
-        //    );
-
-        //    _logger.LogInformation("PerformerPlanner starting..");
-        //    Start(cancellationToken);
-        //}
 
         public Task StopAsync(CancellationToken cancellationToken)
         {

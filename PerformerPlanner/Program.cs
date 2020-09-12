@@ -49,7 +49,8 @@ namespace PerformerPlanner
                    {
                        loggingBuilder.AddConsole(options =>
                        {
-                           options.TimestampFormat = "[HH:mm:ss hh:mm:ss] ";
+                           options.TimestampFormat = "[dd:MM:yyyy HH:mm:ss] ";
+                           //options.Format = Microsoft.Extensions.Logging.Console.ConsoleLoggerFormat.Default;
                        });
                    })
                    .Build()

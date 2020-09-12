@@ -42,11 +42,31 @@ namespace TwitchPlanner.Jobs
 
         public static bool UrlValid(string url) => url.StartsWith(TwitchAddressPrefix);
 
+        public override void OnStartUp()
+        {
+            StopPlayer();
+
+            TwitchAuth(_twitchIdentity);
+        }
+
+        private void StopPlayer()
+        {
+            By cssSelectorButtonPlayer = By.CssSelector("button[data-a-target=\"player-play-pause-button\"]");
+
+            try
+            {
+                WebDriver.WaitUntilElementIsVisible(cssSelectorButtonPlayer);
+                IWebElement buttonElement = WebDriver.FindElement(cssSelectorButtonPlayer);
+                buttonElement.Click();
+            }
+            catch
+            {
+                // Не имеет значения даже для логирования
+            }
+        }
+
         public override void Execute(System.Threading.CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            TwitchAuth(_twitchIdentity);
-
             cancellationToken.ThrowIfCancellationRequested();
             CollectPoint();
         }

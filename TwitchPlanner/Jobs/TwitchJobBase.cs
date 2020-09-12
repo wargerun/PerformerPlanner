@@ -26,6 +26,8 @@ namespace TwitchPlanner.Jobs
 
         public abstract void Execute(System.Threading.CancellationToken cancellationToken);
 
+        public abstract void OnStartUp();
+
         protected void TwitchAuth(TwitchIdentity identity)
         {
             if (!TwitchHelper.LoginIsPresent(WebDriver))
@@ -36,6 +38,6 @@ namespace TwitchPlanner.Jobs
 
                 TwitchHelper.TwitchAuth(identity, WebDriver);
             }
-        }                                                       
+        }
     }
 }
