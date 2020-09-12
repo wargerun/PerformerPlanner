@@ -224,6 +224,7 @@ namespace TwitchPlanner.Services
             {
                 if (disposing)
                 {
+                    _followingUri = null;
                 }
 
                 _webDriver?.Dispose();
@@ -231,9 +232,13 @@ namespace TwitchPlanner.Services
             }
         }
 
+        ~BrowserChromeService()
+        {
+            Dispose(disposing: false);
+        }
+
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
