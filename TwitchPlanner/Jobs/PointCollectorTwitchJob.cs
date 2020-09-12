@@ -18,7 +18,7 @@ namespace TwitchPlanner.Jobs
 
         public override string Name { get; }
 
-        public PointCollectorTwitchJob(IWebDriver webDriver, IConfiguration _configuration, ILogger<PointCollectorTwitchJob> logger)
+        public PointCollectorTwitchJob(IWebDriver webDriver, IConfiguration _configuration, ILogger<PointCollectorTwitchJob> logger, string channelName)
             : base(webDriver)
         {
             if (webDriver.Url is null)
@@ -31,8 +31,7 @@ namespace TwitchPlanner.Jobs
                 throw new ArgumentException("Is not twitch uri", nameof(webDriver));
             }
 
-            string url = webDriver.Url;
-            Name = $"Channel: {url.Substring(url.LastIndexOf('/') + 1)}";
+            Name = $"Channel: {channelName}";
 
             string twitchLogin = _configuration["TwitchLogin"];
             string twitchPassword = _configuration["TwitchPassword"];
@@ -55,7 +54,9 @@ namespace TwitchPlanner.Jobs
         private void CollectPoint()
         {
             // span with value points
-            IWebElement valuePointsElements = WebDriver.FindElement(By.CssSelector("div.tw-c-text-alt-2.tw-flex>span.tw-animated-number"));
+            By elementLocator = By.CssSelector("div.tw-c-text-alt-2.tw-flex>span.tw-animated-number");
+            WebDriver.WaitUntilElementIsVisible(elementLocator);
+            IWebElement valuePointsElements = WebDriver.FindElement(elementLocator);
             string valuePoints = valuePointsElements.Text;
 
             if (valuePoints != _lastPoints)

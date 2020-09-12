@@ -1,23 +1,26 @@
-﻿using OpenQA.Selenium;
-
-using System;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Planner.Common.Structure
 {
     public class BrowserTab
-    {
+    {          
         public Uri Uri { get; }
-        public IWebDriver WebDriver { get; }
-        public string SessionWindowName { get; set; }
 
-        public IJob Job { get; set; }
+        public IEnumerable<IJob> Jobs { get; set; }
 
-        public bool JobIsPresent => Job != null;
+        public ChannelState State { get; set; }
 
-        public BrowserTab(Uri uri, IWebDriver webDriver)
+        public BrowserTab(Uri uri, IEnumerable<IJob> jobs)
         {
             Uri = uri;
-            WebDriver = webDriver;
+            Jobs = jobs;
+            State = ChannelState.New;
+        }
+
+        public override string ToString()
+        {
+            return $"{State} - {Uri.AbsolutePath.TrimStart('/')}";
         }
     }
 }

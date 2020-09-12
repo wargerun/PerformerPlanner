@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 using NLog;
 
+using TwitchPlanner.Services;
 using System;
 
 namespace PerformerPlanner

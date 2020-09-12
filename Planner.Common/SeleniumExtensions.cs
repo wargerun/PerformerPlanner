@@ -30,5 +30,16 @@ namespace Planner.Common
 
             wait.Until(condition);
         }
+
+        public static void WaitUntilElementExists(this IWebDriver webElement, By elementLocator, int timeout = 10) => webElement.WaitUntilElementExists(elementLocator, TimeSpan.FromSeconds(timeout));
+
+        public static void WaitUntilElementExists(this IWebDriver webElement, By elementLocator, TimeSpan timeout)
+        {
+            WebDriverWait wait = new WebDriverWait(webElement, timeout);
+
+            Func<IWebDriver, IWebElement> condition = SeleniumExtras.WaitHelpers.ExpectedConditions.ElementExists(elementLocator);
+
+            wait.Until(condition);
+        }
     }
 }

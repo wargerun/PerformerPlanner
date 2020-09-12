@@ -9,11 +9,8 @@ namespace TwitchPlanner.Jobs
     {
         protected IWebDriver WebDriver { get; }
         protected static readonly Logger _log = LogManager.GetCurrentClassLogger();
-        protected static readonly By BodyElementAsLogged = By.CssSelector("body[class*='logged-in']");
-        protected static readonly By BodyElement = By.CssSelector("body");
         private static readonly string CssSelectorOnLoginPageButton = "tw-align-items-center tw-align-middle tw-border-bottom-left-radius-medium tw-border-bottom-right-radius-medium tw-border-top-left-radius-medium tw-border-top-right-radius-medium tw-core-button tw-core-button--secondary tw-inline-flex tw-interactive tw-justify-content-center tw-overflow-hidden tw-relative";
-
-        public bool LoginIsPresent() => WebDriver.IsElementExist(BodyElementAsLogged);
+        protected static readonly By BodyElement = By.CssSelector("body");
 
         public abstract string Name { get; }
 
@@ -31,32 +28,14 @@ namespace TwitchPlanner.Jobs
 
         protected void TwitchAuth(TwitchIdentity identity)
         {
-            if (!LoginIsPresent())
+            if (!TwitchHelper.LoginIsPresent(WebDriver))
             {
                 // Indetify login
                 IWebElement loginButton = WebDriver.FindElement(By.CssSelector($"button[class='{CssSelectorOnLoginPageButton}']"));
                 loginButton.Click();
 
-                By byLoginUsername = By.Id("login-username");
-
-                WebDriver.WaitUntilElementIsVisible(byLoginUsername, TimeSpan.FromSeconds(1));
-                IWebElement txtLoginMailInout = WebDriver.FindElement(byLoginUsername);
-                txtLoginMailInout.SendKeys(identity.Login);
-
-                IWebElement txtPasswordInput = WebDriver.FindElement(By.Id("password-input"));
-                txtPasswordInput.SendKeys(identity.Password);
-
-                IWebElement buttonAuth = WebDriver.FindElement(By.CssSelector($"button[data-a-target='passport-login-button']"));
-                buttonAuth.Click();
-
-                // operation
-                if (WebDriver.IsElementExist(By.CssSelector("div[class='auth-modal tw-relative']")))
-                {
-                    // Взять с почты код
-                    Console.Write("Введите код с почты: ");
-                    Console.ReadLine();
-                }
+                TwitchHelper.TwitchAuth(identity, WebDriver);
             }
-        }
+        }                                                       
     }
 }
