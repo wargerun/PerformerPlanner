@@ -22,9 +22,6 @@ namespace TwitchPlanner.Services
 {
     public class BrowserChromeService : IHostedService, IDisposable
     {
-        /// <summary>
-        /// TODO NLOG USELESS
-        /// </summary>
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
         private readonly IConfiguration _configuration;
