@@ -245,7 +245,7 @@ namespace Planner.Twitch.Services
             ChromeOptions options = new ChromeOptions();
             options.AddArgument("mute-audio");
 
-            _webDriver = new ChromeDriver(@"D:\Dowloands\YandexBrowser\chromedriver_win32", options); // 85.0.4183.87
+            _webDriver = new ChromeDriver(options); // 85.0.4183.87
         }
 
         protected virtual void Dispose(bool disposing)
