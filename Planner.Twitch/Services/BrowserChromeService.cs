@@ -56,7 +56,7 @@ namespace Planner.Twitch.Services
 
         private void StartInternal(object cancellationTokenObject)
         {
-            CancellationToken cancellationToken = (CancellationToken) cancellationTokenObject;
+            CancellationToken cancellationToken = (CancellationToken)cancellationTokenObject;
             _logger.LogInformation("PerformerPlanner starting..");
             _log.Info($"Monitoring starting");
 
@@ -64,6 +64,7 @@ namespace Planner.Twitch.Services
             _logger.LogInformation($"Open followingUri: {_followingUri}");
 
             IsRunning = true;
+            int errorCount = 0;
             List<BrowserTab> currentBrowserTabs = new List<BrowserTab>();
 
             while (IsRunning)
@@ -77,6 +78,7 @@ namespace Planner.Twitch.Services
                     UpdateBrowserTabsAndState(currentBrowserTabs);
 
                     _log.Trace($"After update tabs: \r\n[{string.Join(", ", currentBrowserTabs)}].");
+                    List<BrowserTab> browserTabsForExcept = new List<BrowserTab>(currentBrowserTabs.Count);
 
                     for (int tabIndex = 1; tabIndex < _webDriver.WindowHandles.Count; tabIndex++)
                     {
@@ -86,6 +88,7 @@ namespace Planner.Twitch.Services
 
                             string url = _webDriver.Url;
                             BrowserTab browserTab = currentBrowserTabs.SingleOrDefault(t => t.Uri.ToString() == url);
+                            browserTabsForExcept.Add(browserTab);
 
                             // someone opened other tab
                             if (browserTab is null)
@@ -114,6 +117,8 @@ namespace Planner.Twitch.Services
                         }
                     }
 
+                    // Если была удалена вручную
+                    currentBrowserTabs.RemoveAll(browserTab => !browserTabsForExcept.Any(tab1 => browserTab.Uri == tab1?.Uri));
                     WaitOnFinnalyTabs();
                 }
                 catch (OperationCanceledException ex)
@@ -124,6 +129,14 @@ namespace Planner.Twitch.Services
                 catch (Exception ex)
                 {
                     errorHandle(ex, $"Body error url={_webDriver.Url}, message={ex.Message}.");
+
+                    if (errorCount > 10)
+                    {
+                        _log.Fatal($"ERROR_COUNT={errorCount}");
+                        Stop();
+                    }
+
+                    errorCount++;
                 }
             }
         }
@@ -173,33 +186,33 @@ namespace Planner.Twitch.Services
 
         private void traceHandle(string message)
         {
-            _logger.LogTrace(message);
             _log.Trace(message);
+            _logger.LogTrace(message);
         }
 
         private void errorHandle(Exception ex, string message)
         {
-            _logger.LogError(message);
             _log.Error(ex, message);
+            _logger.LogError(message);
         }
 
         private void UpdateBrowserTabsAndState(List<BrowserTab> currentBrowserTabs)
         {
             Uri[] actualLinkChannels = TwitchHelper.GetLinkChannels(_webDriver);
 
-            // Change all new state in Live
+            // Change all new state in Active
             currentBrowserTabs.Where(item => item.State == TabState.New).ForEach(item =>
             {
                 item.State = TabState.Active;
             });
 
-            // Stream is not alive, ofline
+            // tabs must be Closed
             currentBrowserTabs.Where(t => !actualLinkChannels.Contains(t.Uri)).ForEach(item =>
             {
                 item.State = TabState.Closed;
             });
 
-            // new streams
+            // new browser tab
             actualLinkChannels.ForEach(item =>
             {
                 if (currentBrowserTabs.Count == 0 || !currentBrowserTabs.Any(tab => tab.Uri == item))
@@ -231,13 +244,18 @@ namespace Planner.Twitch.Services
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            Stop();
+            return Task.CompletedTask;
+        }
+
+        private void Stop()
+        {
             IsRunning = false;
 
             string MESSAGE = $"Service {nameof(BrowserChromeService)} is shutting down.";
             _logger.LogInformation(MESSAGE);
             _log.Info(MESSAGE);
-
-            return Task.CompletedTask;
+            Dispose();
         }
 
         private void InitChromDriver()

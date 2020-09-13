@@ -92,7 +92,6 @@ namespace Planner.Twitch.Jobs
 
             if (valuePoints != _lastPoints)
             {
-                _log.Debug($"Uri: {WebDriver.Url}");
                 _log.Info($"Value points: {valuePoints}");
                 _logger.LogInformation($"{Name}, Value points: {valuePoints}");
             }
@@ -104,11 +103,6 @@ namespace Planner.Twitch.Jobs
                 _log.Info($"Get new points clicked");
 
                 _logger.LogInformation($"JobName: {Name}, Get new points clicked.");
-            }
-            else
-            {
-                _browserTab.CountErrorChain++;
-
             }
 
             _lastPoints = valuePoints;
