@@ -9,6 +9,7 @@ using OpenQA.Selenium.Chrome;
 
 using Planner.Common;
 using Planner.Common.Structure;
+using Planner.Twitch.Jobs;
 
 using System;
 using System.Collections.Generic;
@@ -16,9 +17,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using TwitchPlanner.Jobs;
-
-namespace TwitchPlanner.Services
+namespace Planner.Twitch.Services
 {
     public class BrowserChromeService : IHostedService, IDisposable
     {

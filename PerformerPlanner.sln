@@ -5,9 +5,9 @@ VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerformerPlanner", "PerformerPlanner\PerformerPlanner.csproj", "{DCC191E2-5692-4472-A5AE-C86AA0E10EFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchPlanner", "TwitchPlanner\TwitchPlanner.csproj", "{044C41DE-EBAB-4E97-AC5D-6B37B0FBED73}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Planner.Twitch", "Planner.Twitch\Planner.Twitch.csproj", "{044C41DE-EBAB-4E97-AC5D-6B37B0FBED73}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Planner.Common", "Planner.Common\Planner.Common.csproj", "{8AF883A8-2F3E-404C-B7A4-7C979D83E707}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Planner.Common", "Planner.Common\Planner.Common.csproj", "{8AF883A8-2F3E-404C-B7A4-7C979D83E707}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

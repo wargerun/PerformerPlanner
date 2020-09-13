@@ -1,4 +1,4 @@
-﻿namespace TwitchPlanner
+﻿namespace Planner.Twitch
 {
     public struct TwitchIdentity
     {
@@ -10,6 +10,6 @@
         {
             Login = loginUsername;
             Password = password;
-        }        
+        }
     }
 }
