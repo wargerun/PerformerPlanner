@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TwitchPlanner\TwitchPlanner.csproj" />
+    <ProjectReference Include="..\Planner.Twitch\Planner.Twitch.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,9 +4,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using NLog;
-
-using TwitchPlanner.Services;
 using System;
+using Planner.Twitch.Services;
 
 namespace PerformerPlanner
 {

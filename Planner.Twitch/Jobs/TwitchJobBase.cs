@@ -1,9 +1,12 @@
 ﻿using NLog;
+
 using OpenQA.Selenium;
+
 using Planner.Common;
+
 using System;
 
-namespace TwitchPlanner.Jobs
+namespace Planner.Twitch.Jobs
 {
     public abstract class TwitchJobBase : IJob
     {

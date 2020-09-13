@@ -5,7 +5,7 @@ using Planner.Common;
 using System;
 using System.Collections.ObjectModel;
 
-namespace TwitchPlanner
+namespace Planner.Twitch
 {
     public static class TwitchHelper
     {
@@ -35,7 +35,7 @@ namespace TwitchPlanner
                 Console.ReadLine();
             }
         }
-        
+
         public static Uri[] GetLinkChannels(IWebDriver webDriver)
         {
             const string SELECTOR = "a[class=\"tw-interactive tw-link\"][data-a-target=\"preview-card-image-link\"]";
