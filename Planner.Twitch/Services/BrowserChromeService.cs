@@ -44,17 +44,22 @@ namespace Planner.Twitch.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            Task.Run(() =>
+            var thread = new Thread(StartInternal)
             {
-                _logger.LogInformation("PerformerPlanner starting..");
-                _log.Info($"Monitoring starting");
-                StartInternal(cancellationToken);
-            }, cancellationToken);
+                Name = nameof(BrowserChromeService),
+            };
+
+            thread.Start(cancellationToken);
+
             return Task.CompletedTask;
         }
 
-        private void StartInternal(CancellationToken cancellationToken)
+        private void StartInternal(object cancellationTokenObject)
         {
+            CancellationToken cancellationToken = (CancellationToken) cancellationTokenObject;
+            _logger.LogInformation("PerformerPlanner starting..");
+            _log.Info($"Monitoring starting");
+
             OpenFollowingTabAndAuth("https://www.twitch.tv/directory/following/live");
             _logger.LogInformation($"Open followingUri: {_followingUri}");
 
@@ -66,108 +71,132 @@ namespace Planner.Twitch.Services
                 try
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int tabIndex = 0;
-                    _webDriver.SwitchTo().Window(_webDriver.WindowHandles[tabIndex]);
+                    _webDriver.SwitchTo().Window(_webDriver.WindowHandles[0]);
                     _webDriver.Navigate().Refresh();
 
                     UpdateBrowserTabsAndState(currentBrowserTabs);
 
-                    for (tabIndex = 1; tabIndex <= currentBrowserTabs.Count; tabIndex++)
-                    {
-                        BrowserTab tab = currentBrowserTabs[tabIndex - 1];
+                    _log.Trace($"After update tabs: \r\n[{string.Join(", ", currentBrowserTabs)}].");
 
+                    for (int tabIndex = 1; tabIndex < _webDriver.WindowHandles.Count; tabIndex++)
+                    {
                         try
                         {
-                            if (!TrySwitchNewBrowserTab(tab, tabIndex))
+                            _webDriver.SwitchTo().Window(_webDriver.WindowHandles[tabIndex]);
+
+                            string url = _webDriver.Url;
+                            BrowserTab browserTab = currentBrowserTabs.SingleOrDefault(t => t.Uri.ToString() == url);
+
+                            // someone opened other tab
+                            if (browserTab is null)
                             {
-                                currentBrowserTabs.Remove(tab);
-                                tabIndex--;
+                                _log.Warn($"Tab has been closing {url}.");
+                                _webDriver.Close();
                                 continue;
                             }
 
-                            foreach (IJob job in tab.Jobs)
-                            {
-                                try
-                                {
-                                    if (tab.State == ChannelState.New)
-                                    {
-                                        job.OnStartUp();
-                                    }
+                            _log.Trace($"SwitchTo on: {browserTab}.");
 
-                                    job.Execute(cancellationToken);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(ex, ex.Message);
-                                    _log.Error(ex, $"Error on Job: {job.Name}, Message: {ex.Message}");
-                                    break;
-                                }
+                            if (browserTab.State == TabState.Closed)
+                            {
+                                _webDriver.Close();
+                                currentBrowserTabs.Remove(browserTab);
+
+                                traceHandle($"Tab has been closing {url}.");
                             }
+
+                            handleJobs(browserTab, cancellationToken);
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, ex.Message);
-                            _log.Error(ex, $"BrowserTab: {tab}, Message: {ex.Message}");
+                            _log.Error(ex, $"BrowserTab: {_webDriver.Url}, Message: {ex.Message}");
                         }
                     }
 
-                    string timeoutSecondsString = _configuration["TimeoutSecondsAfterJobs"];
-                    int timeoutSeconds = 5;
-
-                    if (timeoutSecondsString != null && int.TryParse(timeoutSecondsString, out int newtimeoutSeconds))
-                    {
-                        timeoutSeconds = newtimeoutSeconds;
-                    }
-
-                    Thread.Sleep(TimeSpan.FromSeconds(timeoutSeconds));
+                    WaitOnFinnalyTabs();
                 }
                 catch (OperationCanceledException ex)
                 {
-                    _logger.LogError(ex, ex.Message);
-                    _log.Error(ex, ex.Message);
+                    _logger.LogError(ex.Message);
+                    _log.Error(ex.Message);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, ex.Message);
-                    _log.Error(ex, $"Body error, Message: {ex.Message}");
+                    errorHandle(ex, $"Body error url={_webDriver.Url}, message={ex.Message}.");
                 }
             }
         }
 
-        private bool TrySwitchNewBrowserTab(BrowserTab tab, int tabIndex)
+        private void WaitOnFinnalyTabs()
         {
-            switch (tab.State)
+            string timeoutSecondsString = _configuration["TimeoutSecondsAfterJobs"];
+            int timeoutSeconds = 5;
+
+            if (timeoutSecondsString != null && int.TryParse(timeoutSecondsString, out int newtimeoutSeconds))
             {
-                case ChannelState.New:
-                    _webDriver.SwitchTo().NewWindow(WindowType.Tab);
-                    _webDriver.Navigate().GoToUrl(tab.Uri);
-                    break;
-                case ChannelState.Live:
-                    _webDriver.SwitchTo().Window(_webDriver.WindowHandles[tabIndex]);
-                    break;
-                case ChannelState.Ofline:
-                    IWebDriver deadTab = _webDriver.SwitchTo().Window(_webDriver.WindowHandles[tabIndex]);
-                    deadTab.Close();
-                    return false;
+                timeoutSeconds = newtimeoutSeconds;
             }
 
-            return true;
+            Thread.Sleep(TimeSpan.FromSeconds(timeoutSeconds));
+        }
+
+        private void handleJobs(BrowserTab browserTab, CancellationToken cancellationToken)
+        {
+            foreach (ITabJob job in browserTab.Jobs)
+            {
+                try
+                {
+                    switch (browserTab.State)
+                    {
+                        case TabState.New:
+                            job.OnStartUp();
+                            break;
+                        case TabState.Closed:
+                            job.OnClosed();
+                            continue;
+                    }
+
+                    if (job.CanExecute(browserTab))
+                    {
+                        job.Execute(cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorHandle(ex, $"Error on Job: {job.Name}, Message: {ex.Message}");
+                    browserTab.CountErrorChain++;
+                    break;
+                }
+            }
+        }
+
+        private void traceHandle(string message)
+        {
+            _logger.LogTrace(message);
+            _log.Trace(message);
+        }
+
+        private void errorHandle(Exception ex, string message)
+        {
+            _logger.LogError(message);
+            _log.Error(ex, message);
         }
 
         private void UpdateBrowserTabsAndState(List<BrowserTab> currentBrowserTabs)
         {
-            Uri[] actualLinkChannels = TwitchHelper.GetLinkChannels(_webDriver).OrderBy(a => a.ToString()).ToArray();
+            Uri[] actualLinkChannels = TwitchHelper.GetLinkChannels(_webDriver);
 
             // Change all new state in Live
-            currentBrowserTabs.Where(item => item.State == ChannelState.New).ForEach(item =>
+            currentBrowserTabs.Where(item => item.State == TabState.New).ForEach(item =>
             {
-                item.State = ChannelState.Live;
+                item.State = TabState.Active;
             });
 
             // Stream is not alive, ofline
             currentBrowserTabs.Where(t => !actualLinkChannels.Contains(t.Uri)).ForEach(item =>
             {
-                item.State = ChannelState.Ofline;
+                item.State = TabState.Closed;
             });
 
             // new streams
@@ -175,11 +204,13 @@ namespace Planner.Twitch.Services
             {
                 if (currentBrowserTabs.Count == 0 || !currentBrowserTabs.Any(tab => tab.Uri == item))
                 {
-                    IJob[] jobs = new IJob[]
+                    ITabJob[] jobs = new ITabJob[]
                     {
                         new PointCollectorTwitchJob(_webDriver, _configuration, collectorLogger, item.AbsolutePath.TrimStart('/')),
                     };
 
+                    _webDriver.SwitchTo().NewWindow(WindowType.Tab);
+                    _webDriver.Navigate().GoToUrl(item);
                     currentBrowserTabs.Add(new BrowserTab(item, jobs));
                 }
             });

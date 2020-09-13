@@ -7,15 +7,17 @@ namespace Planner.Common.Structure
     {          
         public Uri Uri { get; }
 
-        public IEnumerable<IJob> Jobs { get; set; }
+        public IEnumerable<ITabJob> Jobs { get; set; }
 
-        public ChannelState State { get; set; }
+        public TabState State { get; set; }
 
-        public BrowserTab(Uri uri, IEnumerable<IJob> jobs)
+        public int CountErrorChain { get; set; }
+
+        public BrowserTab(Uri uri, IEnumerable<ITabJob> jobs)
         {
             Uri = uri;
             Jobs = jobs;
-            State = ChannelState.New;
+            State = TabState.New;
         }
 
         public override string ToString()

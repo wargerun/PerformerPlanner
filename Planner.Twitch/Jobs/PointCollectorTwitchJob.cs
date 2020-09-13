@@ -6,6 +6,7 @@ using NLog;
 using OpenQA.Selenium;
 
 using Planner.Common;
+using Planner.Common.Structure;
 
 using System;
 
@@ -18,6 +19,7 @@ namespace Planner.Twitch.Jobs
         private readonly TwitchIdentity _twitchIdentity;
         private readonly ILogger<PointCollectorTwitchJob> _logger;
         private string _lastPoints;
+        private BrowserTab _browserTab;
 
         public override string Name { get; }
 
@@ -55,17 +57,23 @@ namespace Planner.Twitch.Jobs
         private void StopPlayer()
         {
             By cssSelectorButtonPlayer = By.CssSelector("button[data-a-target=\"player-play-pause-button\"]");
+            WebDriver.WaitUntilElementIsVisible(VideoPlayerCssSelector, 5);
 
-            try
+            if (WebDriver.IsElementExist(cssSelectorButtonPlayer))
             {
-                WebDriver.WaitUntilElementIsVisible(cssSelectorButtonPlayer);
                 IWebElement buttonElement = WebDriver.FindElement(cssSelectorButtonPlayer);
                 buttonElement.Click();
             }
-            catch
+        }
+
+        public override bool CanExecute(BrowserTab browserTab)
+        {
+            if (_browserTab is null)
             {
-                // Не имеет значения даже для логирования
+                _browserTab = browserTab;
             }
+
+            return base.CanExecute(browserTab);
         }
 
         public override void Execute(System.Threading.CancellationToken cancellationToken)
@@ -78,7 +86,7 @@ namespace Planner.Twitch.Jobs
         {
             // span with value points
             By elementLocator = By.CssSelector("div.tw-c-text-alt-2.tw-flex>span.tw-animated-number");
-            WebDriver.WaitUntilElementIsVisible(elementLocator);
+            WebDriver.WaitUntilElementExists(elementLocator);
             IWebElement valuePointsElements = WebDriver.FindElement(elementLocator);
             string valuePoints = valuePointsElements.Text;
 
@@ -96,6 +104,11 @@ namespace Planner.Twitch.Jobs
                 _log.Info($"Get new points clicked");
 
                 _logger.LogInformation($"JobName: {Name}, Get new points clicked.");
+            }
+            else
+            {
+                _browserTab.CountErrorChain++;
+
             }
 
             _lastPoints = valuePoints;

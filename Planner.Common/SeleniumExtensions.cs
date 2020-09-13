@@ -20,7 +20,7 @@ namespace Planner.Common
             }
         }
 
-        public static void WaitUntilElementIsVisible(this IWebDriver webElement, By elementLocator, int timeout = 10) => webElement.WaitUntilElementIsVisible(elementLocator, TimeSpan.FromSeconds(timeout));
+        public static void WaitUntilElementIsVisible(this IWebDriver webElement, By elementLocator, int timeoutSeconds = 10) => webElement.WaitUntilElementIsVisible(elementLocator, TimeSpan.FromSeconds(timeoutSeconds));
 
         public static void WaitUntilElementIsVisible(this IWebDriver webElement, By elementLocator, TimeSpan timeout)
         {
@@ -31,7 +31,7 @@ namespace Planner.Common
             wait.Until(condition);
         }
 
-        public static void WaitUntilElementExists(this IWebDriver webElement, By elementLocator, int timeout = 10) => webElement.WaitUntilElementExists(elementLocator, TimeSpan.FromSeconds(timeout));
+        public static void WaitUntilElementExists(this IWebDriver webElement, By elementLocator, int timeoutSeconds = 10) => webElement.WaitUntilElementExists(elementLocator, TimeSpan.FromSeconds(timeoutSeconds));
 
         public static void WaitUntilElementExists(this IWebDriver webElement, By elementLocator, TimeSpan timeout)
         {
